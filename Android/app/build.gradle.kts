@@ -9,6 +9,9 @@ android {
 
     defaultConfig {
         applicationId = "com.cavss.artravel"
+
+        // AR Optional apps must declare minSdkVersion >= 14.
+        // AR Required apps must declare minSdkVersion >= 24.
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -39,12 +42,22 @@ dependencies {
 
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
-    implementation("com.google.ar:core:1.33.0")
+    //ARCore 라이브러리
+    implementation("com.google.ar:core:1.43.0")
+    implementation("com.google.ar.sceneform:core:1.43.0")
+    implementation("com.google.ar.sceneform.ux:sceneform-ux:1.31.0")
+
+    //obj 파일을 읽기 위한 라이브러리
+    implementation("de.javagl:obj:0.2.1")
+
+    // Material Design 라이브러리 (최신 버전 사용)
+    implementation("com.google.android.material:material:1.6.0")
+
+
 
 }
