@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Artect</string>
+
+    <string name="nav_menu_home">Home</string>
+    <string name="nav_menu_map">Map</string>
+    <string name="nav_menu_profile">Profile</string>
 </resources>

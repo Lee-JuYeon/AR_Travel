@@ -40,7 +40,7 @@ android {
 
 dependencies {
 
-    implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     testImplementation("junit:junit:4.13.2")
@@ -49,14 +49,16 @@ dependencies {
 
     //ARCore 라이브러리
     implementation("com.google.ar:core:1.43.0")
-    implementation("com.google.ar.sceneform:core:1.43.0")
-    implementation("com.google.ar.sceneform.ux:sceneform-ux:1.31.0")
 
     //obj 파일을 읽기 위한 라이브러리
     implementation("de.javagl:obj:0.2.1")
 
-    // Material Design 라이브러리 (최신 버전 사용)
-    implementation("com.google.android.material:material:1.6.0")
+    // bottom navigation
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.7")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.7")
+    implementation("androidx.navigation:navigation-runtime-ktx:2.7.7")
+
 
 
 
