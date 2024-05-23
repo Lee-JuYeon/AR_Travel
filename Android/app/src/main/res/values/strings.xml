@@ -3,5 +3,7 @@
 
     <string name="nav_menu_home">Home</string>
     <string name="nav_menu_map">Map</string>
-    <string name="nav_menu_profile">Profile</string>
+    <string name="nav_menu_setting">Setting</string>
+
+    <string name="setting_require_auth">Need an account</string>
 </resources>

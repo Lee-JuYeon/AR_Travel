@@ -1,4 +1,4 @@
-package com.cavss.artravel.fragments
+package com.cavss.artravel.ui.view.screen.home
 
 import android.os.Bundle
 import android.view.LayoutInflater
