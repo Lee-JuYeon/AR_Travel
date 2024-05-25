@@ -5,5 +5,5 @@ interface IClickListener<MODEL> {
 }
 
 interface IClickEventListener {
-    fun onItemClick(model : Any, position : Int)
+    fun onItemClick(event : () -> Unit)
 }

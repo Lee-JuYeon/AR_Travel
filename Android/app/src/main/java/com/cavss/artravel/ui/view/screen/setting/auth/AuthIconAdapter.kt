@@ -1,4 +1,4 @@
-package com.cavss.artravel.ui.view.screen.setting
+package com.cavss.artravel.ui.view.screen.setting.auth
 
 import android.util.Log
 import android.view.LayoutInflater

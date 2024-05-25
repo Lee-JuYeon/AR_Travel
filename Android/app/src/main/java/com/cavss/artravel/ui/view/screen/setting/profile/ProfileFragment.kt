@@ -1,14 +1,15 @@
-package com.cavss.artravel.ui.view.screen.setting
+package com.cavss.artravel.ui.view.screen.setting.profile
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import com.cavss.artravel.databinding.FragmentSettingProfileBinding
 import com.cavss.artravel.server.auth.AuthManager
 
-class ProfileFragment(var authManager: AuthManager?) : Fragment() {
+class ProfileFragment() : Fragment() {
 
     private lateinit var binding : FragmentSettingProfileBinding
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -18,4 +19,6 @@ class ProfileFragment(var authManager: AuthManager?) : Fragment() {
         }
         return binding.root
     }
+
+
 }

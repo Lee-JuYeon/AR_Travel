@@ -24,12 +24,12 @@ class AuthManager(var activity : FragmentActivity) {
         if (auth == null) auth = FirebaseAuth.getInstance(firebaseApp)
         return auth
     }
-    fun getUser() : Boolean {
+    fun isUserExist() : Boolean {
         return try {
             if (auth == null) auth = FirebaseAuth.getInstance()
             auth?.currentUser != null
         } catch (e: Exception) {
-            Log.e("mException", "AuthManager, getUser // Exception : ${e.localizedMessage}")
+            Log.e("mException", "AuthManager, isUserExist // Exception : ${e.localizedMessage}")
             false
         }
     }

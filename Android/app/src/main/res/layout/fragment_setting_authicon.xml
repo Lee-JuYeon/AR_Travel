@@ -4,6 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
+        <variable
+            name="iclick"
+            type="com.cavss.artravel.interfaces.IButtonClick" />
+
+        <variable
+            name="registerButton"
+            type="com.cavss.artravel.interfaces.IButtonClick" />
 
     </data>
 
@@ -13,7 +20,7 @@
         android:layout_margin="10dp"
         android:orientation="vertical"
         android:background="@drawable/bg_roundedrectangle"
-        android:padding="10dp"
+        android:padding="20dp"
         style="@style/SCREEN">
 
         <TextView
@@ -21,9 +28,81 @@
             android:layout_height="wrap_content"
             android:text="@string/setting_require_auth"
             style="@style/TEXT"/>
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:inputType="text"
+            android:background="@drawable/bg_round"
+            android:padding="10dp"
+            android:id="@+id/email"
+            android:hint="email"/>
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:inputType="textPassword"
+            android:background="@drawable/bg_round"
+            android:padding="10dp"
+            android:id="@+id/password"
+            android:hint="password"/>
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:text="LOG IN"
+            android:onClick="@{() -> iclick.onIClick()}"
+            style="@style/BUTTON"/>
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sign in with..."
+            android:layout_marginTop="30dp"/>
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/auth_recyclerview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:id="@+id/registerContainer">
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:inputType="text"
+                android:background="@drawable/bg_round"
+                android:padding="10dp"
+                android:id="@+id/register_email"
+                android:hint="email"/>
+
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:inputType="textPassword"
+                android:background="@drawable/bg_round"
+                android:padding="10dp"
+                android:id="@+id/register_password"
+                android:hint="password"/>
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:text="회원가입"
+                android:onClick="@{() -> registerButton.onIClick()}"
+                style="@style/BUTTON"/>
+
+        </LinearLayout>
     </LinearLayout>
 </layout>

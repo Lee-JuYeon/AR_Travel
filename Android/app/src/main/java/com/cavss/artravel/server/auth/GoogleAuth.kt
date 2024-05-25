@@ -35,7 +35,6 @@ class GoogleAuth(private val activity: FragmentActivity, var auth: FirebaseAuth?
             .requestEmail()
             .build()
         googleSignInClient = GoogleSignIn.getClient(activity, gso)
-
     }
 
     fun setting(fragment: Fragment){
