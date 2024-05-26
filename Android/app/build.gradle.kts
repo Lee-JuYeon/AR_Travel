@@ -85,6 +85,10 @@ dependencies {
     implementation("androidx.credentials:credentials:1.2.2")
     implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
     implementation("com.google.android.libraries.identity.googleid:googleid")
+
+    // Map, osmdriod
+    implementation("org.osmdroid:osmdroid-android:6.1.11")
+
 }
 
 // buildConfig 사용
