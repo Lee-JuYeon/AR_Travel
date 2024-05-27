@@ -1,4 +1,4 @@
-package com.cavss.artravel.ui.view.screen.map
+package com.cavss.artravel.ui.view.screen.travel.map
 
 import android.Manifest
 import android.graphics.Rect
@@ -8,10 +8,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.cavss.artravel.MainActivity
 import com.cavss.artravel.PermissionCallback
 import com.cavss.artravel.PermissionManager
+import com.cavss.artravel.R
 import com.cavss.artravel.databinding.FragmentMapBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,8 +53,10 @@ class MapFragment : Fragment(), MapListener {
         try{
             mapView.let{
                 it.setMultiTouchControls(true)
+                it.setUseDataConnection(true) // 데이터 연결 사용 허용
                 it.mapCenter // 중심점 속성에 접근
-                it.setTileSource(TileSourceFactory.MAPNIK)
+                it.isTilesScaledToDpi = true // DPI에 따라 타일 크기 조절
+                it.setTileSource(TileSourceFactory.MAPNIK) // 기본 타일 소스
                 it.getLocalVisibleRect(Rect()) // 현재 보이는 지도 뷰의 사각 영역을 가져옴
             }
 
@@ -69,7 +73,7 @@ class MapFragment : Fragment(), MapListener {
                 }
             }
 
-            iMapController.setZoom(15.0)
+            iMapController.setZoom(5.0) // 초기 줌 레벨 설정
 
             mapView.let {
                 it.overlays.add(mMyLocationOverlay)
@@ -87,11 +91,13 @@ class MapFragment : Fragment(), MapListener {
     private fun addMarker(latitude : Double, longtitude : Double){
         try{
             // 마커 추가
-            val startMarker = Marker(binding.placeMap)
-            startMarker.position = GeoPoint(latitude, longtitude) // 마커 위치
-            startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-            startMarker.title = "London"
-            binding.placeMap.overlays.add(startMarker) // 마커 추가
+            val marker = Marker(binding.placeMap)
+            marker.position = GeoPoint(latitude, longtitude) // 마커 위치
+            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            marker.title = "London"  // 마커에 제목을 설정합니다.
+            marker.snippet = "마커 설명" // 마커에 설명을 설정합니다.
+//            marker.icon = ContextCompat.getDrawable(requireContext(), R.drawable.marker_icon) // 마커 스타일을 설정할 수도 있습니다.
+            binding.placeMap.overlays.add(marker) // 마커 추가
         }catch (e:Exception){
             Log.e("mException", "MapFragment, addMarker // Exception : ${e.localizedMessage}")
         }
@@ -131,7 +137,9 @@ class MapFragment : Fragment(), MapListener {
     override fun onResume() {
         super.onResume()
         Configuration.getInstance().load(requireActivity(),
-            PreferenceManager.getDefaultSharedPreferences(requireActivity()));
+            PreferenceManager.getDefaultSharedPreferences(requireActivity()))
+        Configuration.getInstance().cacheMapTileCount = 1024; // 타일 캐시 크기 설정 (예: 1024개)
+
         binding.placeMap.onResume()
     }
 

@@ -86,6 +86,14 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
     implementation("com.google.android.libraries.identity.googleid:googleid")
 
+    //firebase realtime database
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-database-ktx:21.0.0")
+
+
+
+
     // Map, osmdriod
     implementation("org.osmdroid:osmdroid-android:6.1.11")
 

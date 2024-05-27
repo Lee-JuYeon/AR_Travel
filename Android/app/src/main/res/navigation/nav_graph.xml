@@ -7,13 +7,13 @@
 
     <fragment
         android:id="@+id/fragment_home"
-        android:name="com.cavss.artravel.ui.view.screen.home.HomeFragment"
+        android:name="com.cavss.artravel.ui.view.screen.travel.theme.ThemeFragment"
         app:layout="@id/fragment_home"
         app:title="@string/nav_menu_home" /> <!-- 네비게이션 바에 표시되는 프래그먼트 제목 -->
 
     <fragment
         android:id="@+id/fragment_map"
-        android:name="com.cavss.artravel.ui.view.screen.map.MapFragment"
+        android:name="com.cavss.artravel.ui.view.screen.travel.map.MapFragment"
         app:layout="@id/fragment_map"
         app:title="@string/nav_menu_map" />
 
