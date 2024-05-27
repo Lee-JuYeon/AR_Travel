@@ -7,17 +7,17 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.cavss.artravel.databinding.FragmentThemeBinding
+import com.cavss.artravel.databinding.FragmentTravelThemeBinding
 import com.cavss.artravel.vm.AuthVM
 
 class ThemeFragment : Fragment() {
 
-    private lateinit var binding : FragmentThemeBinding
+    private lateinit var binding : FragmentTravelThemeBinding
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        binding = FragmentThemeBinding.inflate(inflater,container,false)
+        binding = FragmentTravelThemeBinding.inflate(inflater,container,false)
         binding.run {
             lifecycleOwner = viewLifecycleOwner
         }

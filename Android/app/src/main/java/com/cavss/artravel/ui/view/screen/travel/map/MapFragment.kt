@@ -14,7 +14,7 @@ import com.cavss.artravel.MainActivity
 import com.cavss.artravel.PermissionCallback
 import com.cavss.artravel.PermissionManager
 import com.cavss.artravel.R
-import com.cavss.artravel.databinding.FragmentMapBinding
+import com.cavss.artravel.databinding.FragmentTravelMapBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,12 +33,12 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 class MapFragment : Fragment(), MapListener {
 
-    private lateinit var binding : FragmentMapBinding
+    private lateinit var binding : FragmentTravelMapBinding
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        binding = FragmentMapBinding.inflate(inflater,container,false)
+        binding = FragmentTravelMapBinding.inflate(inflater,container,false)
         binding.run {
             lifecycleOwner = viewLifecycleOwner
         }

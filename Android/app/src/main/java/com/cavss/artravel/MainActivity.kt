@@ -58,12 +58,12 @@ class MainActivity : AppCompatActivity() {
 
             bottomNavigationView.setOnItemSelectedListener {  item ->
                 when(item.itemId) {
-                    R.id.fragment_home -> {
-                        changeFragment(R.id.fragment_home)
+                    R.id.fragment_travel -> {
+                        changeFragment(R.id.fragment_travel)
                         true
                     }
-                    R.id.fragment_map -> {
-                        changeFragment(R.id.fragment_map)
+                    R.id.fragment_write -> {
+                        changeFragment(R.id.fragment_write)
                         true
                     }
                     R.id.fragment_setting -> {

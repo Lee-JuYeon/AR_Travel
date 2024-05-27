@@ -2,12 +2,12 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/fragment_home"
+        android:id="@+id/fragment_travel"
         android:icon="@drawable/ic_launcher_background"
         android:title="@string/nav_menu_home" />
 
     <item
-        android:id="@+id/fragment_map"
+        android:id="@+id/fragment_write"
         android:icon="@drawable/ic_launcher_background"
         android:title="@string/nav_menu_map" />
 
