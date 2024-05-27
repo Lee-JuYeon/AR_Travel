@@ -55,6 +55,7 @@ android {
 
 dependencies {
 
+    implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.activity:activity-ktx:1.9.0")
     implementation("androidx.fragment:fragment-ktx:1.7.1")
     implementation("androidx.core:core-ktx:1.13.1")
@@ -71,7 +72,6 @@ dependencies {
     implementation("de.javagl:obj:0.2.1")
 
     // bottom navigation
-    implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.7")
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.7")
     implementation("androidx.navigation:navigation-runtime-ktx:2.7.7")
@@ -90,9 +90,6 @@ dependencies {
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-database-ktx:21.0.0")
-
-
-
 
     // Map, osmdriod
     implementation("org.osmdroid:osmdroid-android:6.1.11")
