@@ -10,18 +10,24 @@ import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.NavigationUI
 import com.cavss.artravel.databinding.ActivityMainBinding
+import com.cavss.artravel.server.db.FirebaseVM
 import com.cavss.artravel.vm.AuthVM
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
 
     private var authVM : AuthVM? = null
+    private var firebaseVM : FirebaseVM? = null
     private fun setInit(){
         try {
             authVM = ViewModelProvider(this@MainActivity)[AuthVM::class.java]
             authVM?.let {
                 it.setInit(this@MainActivity)
                 it.setUserExist(it.isUserExist())
+            }
+            firebaseVM = ViewModelProvider(this@MainActivity)[FirebaseVM::class.java]
+            firebaseVM.let {
+                it
             }
         } catch (e: Exception) {
             Log.e("mException", "MainActivity, setInit // Exception: ${e.localizedMessage}", e)

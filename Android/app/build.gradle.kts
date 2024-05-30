@@ -94,6 +94,10 @@ dependencies {
     // Map, osmdriod
     implementation("org.osmdroid:osmdroid-android:6.1.11")
 
+    // glide
+    implementation("com.github.bumptech.glide:glide:4.11.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.11.0")
+
 }
 
 // buildConfig 사용
