@@ -1,12 +1,3 @@
 <resources>
-    <string name="app_name">Artect</string>
-
-    <string name="nav_menu_travel">Travel</string>
-    <string name="nav_menu_write">Write</string>
-    <string name="nav_menu_setting">Setting</string>
-
-    <string name="fragment_theme_title">Theme</string>
-    <string name="fragment_map_title">Map</string>
-
-    <string name="setting_require_auth">Need an account</string>
+    <string name="app_name">ARtravel</string>
 </resources>
