@@ -3,8 +3,6 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-        // JitPack 저장소 추가 (필요한 경우)
-        maven { url = uri("https://jitpack.io") }
     }
 }
 dependencyResolutionManagement {
@@ -12,11 +10,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // JitPack 저장소 추가 (필요한 경우)
-        maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://jitpack.io") } // JitPack 저장소 추가
     }
 }
-
 rootProject.name = "ARtravel"
 include(":app")
-// 123
+//

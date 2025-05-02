@@ -46,7 +46,7 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 
     // OpenCV 라이브러리 추가 (로컬 모듈로 포함된 경우)
-    implementation(project(":opencv"))
+//    implementation(project(":opencv"))
 
     // Rajawali 3D 엔진 추가
     implementation("org.rajawali3d:rajawali:1.1.970")
