@@ -10,9 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") } // JitPack 저장소 추가
     }
 }
+
 rootProject.name = "ARtravel"
 include(":app")
-//
