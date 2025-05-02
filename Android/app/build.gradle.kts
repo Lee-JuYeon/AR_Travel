@@ -44,4 +44,19 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+
+    // OpenCV 라이브러리 추가 (로컬 모듈로 포함된 경우)
+    implementation(project(":opencv"))
+
+    // Rajawali 3D 엔진 추가
+    implementation("org.rajawali3d:rajawali:1.1.970")
+
+    // Tiny OBJ Loader
+    implementation("com.github.javagl:Obj:0.3.0")
+
+    // Apache Commons Math
+    implementation("org.apache.commons:commons-math3:3.6.1")
+
+    // JTransforms (필요시)
+    implementation("com.github.wendykierp:JTransforms:3.1")
 }
