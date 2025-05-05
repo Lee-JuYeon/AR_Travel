@@ -1,0 +1,4 @@
+/Users/cavss/Library/Android/sdk/cmake/3.22.1/bin/ninja \
+  -C \
+  /Users/cavss/Desktop/Projects/unicons/ARtravel/OpenCV/opencv/.cxx/Debug/5n2s206z/arm64-v8a \
+  opencv_jni_shared
