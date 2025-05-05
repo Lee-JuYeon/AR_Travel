@@ -154,7 +154,7 @@ class BuildingModelManager(private val context: Context) {
             texCoords = cubeTexCoords,
             indices = cubeIndices,
             cornerPoints = gyeongbokgungCorners,
-            textureResId = R.drawable.texture_gyeongbokgung // 리소스에 추가 필요
+            textureResId = R.drawable.ic_launcher_background // 리소스에 추가 필요
         )
 
         // 예시 건물 2 (불국사)
@@ -174,7 +174,7 @@ class BuildingModelManager(private val context: Context) {
             texCoords = cubeTexCoords,
             indices = cubeIndices,
             cornerPoints = bulguksaCorners,
-            textureResId = R.drawable.texture_bulguksa // 리소스에 추가 필요
+            textureResId = R.drawable.ic_launcher_background // 리소스에 추가 필요
         )
 
         // 모델 맵에 추가

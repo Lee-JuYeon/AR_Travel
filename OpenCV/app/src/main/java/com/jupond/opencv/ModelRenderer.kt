@@ -10,6 +10,7 @@ import org.opencv.core.Mat
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import java.nio.ShortBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -57,6 +58,12 @@ class ModelRenderer(private val context: Context) : GLSurfaceView.Renderer {
         val numIndices: Int
     )
 
+    private var useCustomModel = false
+    private var customModelVertices: FloatBuffer? = null
+    private var customModelTexCoords: FloatBuffer? = null
+    private var customModelIndices: ByteBuffer? = null
+    private var customModelIndexCount = 0
+
     init {
         // 모델 행렬 초기화
         Matrix.setIdentityM(modelMatrix, 0)
@@ -71,7 +78,7 @@ class ModelRenderer(private val context: Context) : GLSurfaceView.Renderer {
         programId = compileShaders()
 
         // LOD 모델 로드
-        loadLODModels()
+//        loadLODModels()
 
         // 텍스처 로드
         textureId = loadTexture()
@@ -97,11 +104,18 @@ class ModelRenderer(private val context: Context) : GLSurfaceView.Renderer {
         // 화면 클리어
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
 
-        // 현재 LOD 모델 선택
-        val model = lodModels[currentLOD] ?: return
-
-        // 버퍼 설정
-        setupBuffers(model)
+        // 커스텀 모델 또는 LOD 모델 선택
+        if (useCustomModel && customModelVertices != null) {
+            // 커스텀 모델 사용
+            vertexBuffer = customModelVertices
+            textureBuffer = customModelTexCoords
+            indexBuffer = customModelIndices
+            numIndices = customModelIndexCount
+        } else {
+            // 현재 LOD 모델 선택
+            val model = lodModels[currentLOD] ?: return
+            setupBuffers(model)
+        }
 
         // 셰이더 사용
         GLES20.glUseProgram(programId)
@@ -123,7 +137,7 @@ class ModelRenderer(private val context: Context) : GLSurfaceView.Renderer {
         val textureSamplerHandle = GLES20.glGetUniformLocation(programId, "uTexture")
         GLES20.glUniform1i(textureSamplerHandle, 0)
 
-        // 깊이 텍스처 활성화 (사용 가능한 경우) - 추가된 부분
+        // 깊이 텍스처 활성화 (사용 가능한 경우)
         if (useDepthTexture && depthTextureId != 0) {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, depthTextureId)
@@ -434,5 +448,24 @@ class ModelRenderer(private val context: Context) : GLSurfaceView.Renderer {
             averageFrameTime < 33 -> 1 // 30-60fps -> 중간 품질
             else -> 2 // 30fps 미만 -> 저품질
         }
+    }
+
+    fun setModelData(vertexBuffer: FloatBuffer, texCoordBuffer: FloatBuffer, indexBuffer: ShortBuffer, indexCount: Int) {
+        // ShortBuffer에서 ByteBuffer로 변환
+        val byteIndexBuffer = ByteBuffer.allocateDirect(indexCount * 2)
+        byteIndexBuffer.order(ByteOrder.nativeOrder())
+
+        for (i in 0 until indexCount) {
+            val value = indexBuffer.get(i)
+            byteIndexBuffer.putShort(value)
+        }
+        byteIndexBuffer.position(0)
+
+        // 커스텀 모델 데이터 설정
+        customModelVertices = vertexBuffer
+        customModelTexCoords = texCoordBuffer
+        customModelIndices = byteIndexBuffer
+        customModelIndexCount = indexCount
+        useCustomModel = true
     }
 }

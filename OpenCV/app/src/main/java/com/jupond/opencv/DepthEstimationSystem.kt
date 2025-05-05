@@ -218,4 +218,38 @@ class DepthEstimationSystem {
         prevGray?.release()
         depthMap?.release()
     }
+
+    private var downsampleFactor = 1 // 기본값은 1 (원본 해상도)
+
+    // 깊이 맵 연산 최적화 (저사양 기기용)
+    fun optimizeForLowEndDevice(isLowEnd: Boolean) {
+        if (isLowEnd) {
+            // 저해상도로 처리 후 업스케일
+            downsampleFactor = 2 // 원본 이미지 크기의 1/2로 처리
+        } else {
+            downsampleFactor = 1 // 원본 해상도로 처리
+        }
+    }
+
+    // 이미지 다운샘플링
+    private fun downsampleImage(image: Mat): Mat {
+        if (downsampleFactor <= 1) return image.clone()
+
+        val downsampled = Mat()
+        Imgproc.resize(
+            image,
+            downsampled,
+            Size(image.cols() / downsampleFactor.toDouble(), image.rows() / downsampleFactor.toDouble())
+        )
+        return downsampled
+    }
+
+    // 이미지 업샘플링
+    private fun upsampleImage(image: Mat, originalSize: Size): Mat {
+        if (downsampleFactor <= 1) return image.clone()
+
+        val upsampled = Mat()
+        Imgproc.resize(image, upsampled, originalSize)
+        return upsampled
+    }
 }
