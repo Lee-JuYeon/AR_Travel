@@ -19,6 +19,9 @@ import com.google.ar.core.ArCoreApk
 import com.google.ar.core.Config
 import com.google.ar.core.Session
 import com.google.ar.core.exceptions.CameraNotAvailableException
+import com.google.ar.core.exceptions.UnavailableApkTooOldException
+import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException
+import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
 import com.google.ar.core.exceptions.UnavailableException
 
 class MainActivity : AppCompatActivity() {
@@ -47,11 +50,13 @@ class MainActivity : AppCompatActivity() {
     private val historicalSites = mutableListOf<HistoricalSite>()
     private var currentSite: HistoricalSite? = null
 
-    // AR 렌더러 (실제 구현이 필요함)
+    // AR 렌더러
     private var renderer: SimpleARRenderer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d(TAG, "onCreate() 호출됨")
+
         setContentView(R.layout.activity_main)
 
         // UI 초기화
@@ -72,28 +77,28 @@ class MainActivity : AppCompatActivity() {
         requestPermissions()
     }
 
-    // MainActivity.kt에 다음 코드를 추가하여 권한 확인 후 AR 세션을 초기화하도록 합니다.
     override fun onStart() {
         super.onStart()
         Log.d(TAG, "onStart() 호출됨")
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED) {
-            // 카메라 권한이 허용된 경우에만 시도
-            setupArCore()
-        }
     }
 
     private fun initializeViews() {
-        glSurfaceView = findViewById(R.id.gl_surface_view)
-        statusTextView = findViewById(R.id.status_text)
-        distanceTextView = findViewById(R.id.distance_text)
-        infoButton = findViewById(R.id.info_button)
+        try {
+            glSurfaceView = findViewById(R.id.gl_surface_view)
+            statusTextView = findViewById(R.id.status_text)
+            distanceTextView = findViewById(R.id.distance_text)
+            infoButton = findViewById(R.id.info_button)
 
-        infoButton.setOnClickListener {
-            currentSite?.let { site ->
-                showHistoricalSiteInfo(site)
+            infoButton.setOnClickListener {
+                currentSite?.let { site ->
+                    showHistoricalSiteInfo(site)
+                }
             }
+
+            Log.d(TAG, "Views 초기화 완료")
+        } catch (e: Exception) {
+            Log.e(TAG, "Views 초기화 오류: ${e.message}")
+            e.printStackTrace()
         }
     }
 
@@ -193,39 +198,106 @@ class MainActivity : AppCompatActivity() {
                     Log.i(TAG, "ARCore 설치가 요청되었습니다.")
                     return
                 }
+                else -> {
+                    Log.i(TAG, "ARCore 설치 상태 알 수 없음")
+                    return
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "ARCore 설치 요청 중 오류 발생: ${e.message}")
             Toast.makeText(this, "ARCore 초기화 중 오류가 발생했습니다.", Toast.LENGTH_LONG).show()
-            finish()
+            e.printStackTrace()
         }
     }
 
     private fun initARSession() {
-        // ARCore 세션 생성화
-        if (arSession == null) {
-            try {
+        try {
+            if (arSession == null) {
+                Log.d(TAG, "새 AR 세션 생성 시도")
+
+                // 세션을 생성하기 전에 ARCore 설치 상태 확인
+                val availability = ArCoreApk.getInstance().checkAvailability(this)
+                if (availability.isTransient || availability.isUnsupported) {
+                    Log.e(TAG, "ARCore를 사용할 수 없음: $availability")
+                    statusTextView.text = "이 기기에서 ARCore를 사용할 수 없습니다"
+                    return
+                }
+
+                // 세션 생성
                 arSession = Session(this)
+                Log.d(TAG, "AR 세션 생성 성공")
+
+                // 구성 전에 카메라 권한 확인
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                    != PackageManager.PERMISSION_GRANTED) {
+                    Log.e(TAG, "카메라 권한이 없습니다")
+                    return
+                }
 
                 // ARCore 세션 구성
                 val config = Config(arSession)
-                config.depthMode = Config.DepthMode.AUTOMATIC
-                config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
-                arSession?.configure(config)
+                // 먼저 깊이 모드, 평면 감지 모드 등을 설정하기 전에 세션이 null인지 확인
+                if (arSession != null) {
+                    config.depthMode = Config.DepthMode.AUTOMATIC
+                    config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
 
-                statusTextView.text = "AR 세션이 초기화되었습니다. 주변을 둘러보세요."
+                    // 디버깅을 위한 추가 설정
+                    try {
+                        // UpdateMode 설정 (최신 카메라 이미지 사용)
+                        config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
 
-                // GLSurfaceView 설정
-                setupGLSurfaceView()
+                        // 자동 초점 모드 설정
+                        config.focusMode = Config.FocusMode.AUTO
 
-            } catch (e: Exception) {
-                Log.e(TAG, "AR 세션 초기화 중 오류 발생: ${e.message}")
-                statusTextView.text = "AR 초기화 실패: ${e.message}"
+                        // 조명 추정 모드 설정
+                        config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+
+                        Log.d(TAG, "AR 세션 추가 설정 완료")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "AR 추가 설정 중 오류: ${e.message}")
+                        // 추가 설정 실패해도 계속 진행
+                    }
+
+
+                    try {
+                        arSession?.configure(config)
+                        Log.d(TAG, "AR 세션 구성 성공")
+                        statusTextView.text = "AR 세션이 초기화되었습니다. 주변을 둘러보세요."
+
+                        // GLSurfaceView 설정
+                        setupGLSurfaceView()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "세션 구성 중 오류: ${e.message}")
+                        statusTextView.text = "AR 초기화 구성 실패: ${e.message}"
+                        e.printStackTrace()
+                    }
+                } else {
+                    Log.e(TAG, "AR 세션이 null입니다 (생성 후)")
+                    statusTextView.text = "AR 세션 생성 실패"
+                }
             }
+        } catch (e: UnavailableException) {
+            Log.e(TAG, "AR 세션 초기화 중 UnavailableException 발생: ${e.message}", e)
+            statusTextView.text = "AR 초기화 실패: ${e.message}"
+
+            // 구체적인 오류 처리
+            when (e) {
+                is UnavailableDeviceNotCompatibleException ->
+                    Toast.makeText(this, "이 기기는 AR을 지원하지 않습니다", Toast.LENGTH_LONG).show()
+                is UnavailableArcoreNotInstalledException ->
+                    Toast.makeText(this, "ARCore를 설치해주세요", Toast.LENGTH_LONG).show()
+                is UnavailableApkTooOldException ->
+                    Toast.makeText(this, "ARCore를 업데이트해주세요", Toast.LENGTH_LONG).show()
+                else ->
+                    Toast.makeText(this, "AR 초기화 오류: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+            e.printStackTrace()
+        } catch (e: Exception) {
+            Log.e(TAG, "AR 세션 초기화 중 기타 오류 발생: ${e.message}", e)
+            statusTextView.text = "AR 초기화 실패: ${e.message}"
+            e.printStackTrace()
         }
     }
-
-
     private fun setupGLSurfaceView() {
         try {
             // 표면 뷰가 투명하도록 설정 (카메라가 보이게)
@@ -253,6 +325,7 @@ class MainActivity : AppCompatActivity() {
             statusTextView.text = "화면 설정 오류: ${e.message}"
         }
     }
+
     private fun startLocationUpdates() {
         try {
             if (::fusedLocationClient.isInitialized) {  // fusedLocationClient가 초기화되었는지 확인
@@ -411,7 +484,7 @@ class MainActivity : AppCompatActivity() {
                 description = "집앞 어린이집 조형물테스트",
                 latitude = 37.578017895229664,
                 longitude = 126.6711298166958,
-                modelPath = "building3d.obj",
+                modelPath = "build3d.obj", // assets 폴더 내 파일명으로 변경
                 originalYear = 1395
             )
         )
@@ -423,7 +496,7 @@ class MainActivity : AppCompatActivity() {
                 description = "정조가 1796년에 완공한 성곽으로, 전통성곽 건축기술과 서양의 과학기술이 결합된 독특한 건축물입니다.",
                 latitude = 37.287568,
                 longitude = 127.012888,
-                modelPath = "building3d.obj",
+                modelPath = "build3d.obj", // assets 폴더 내 파일명으로 변경
                 originalYear = 1796
             )
         )
@@ -437,7 +510,7 @@ class MainActivity : AppCompatActivity() {
                     description = "테스트용 가상 건축물입니다. 실제 위치에 맞게 수정해야 합니다.",
                     latitude = location.latitude + 0.0001, // 약 10-20미터 거리
                     longitude = location.longitude + 0.0001,
-                    modelPath = "building3d.obj",
+                    modelPath = "build3d.obj", // assets 폴더 내 파일명으로 변경
                     originalYear = 1800
                 )
             )
@@ -453,18 +526,24 @@ class MainActivity : AppCompatActivity() {
 
         // AR 세션이 있는 경우에만 재개
         try {
-            if (arSession != null) {
-                Log.d(TAG, "AR 세션 재개 시도")
-                arSession?.resume()
+            arSession?.resume()
+
+            // GLSurfaceView가 setRenderer()가 호출된 경우에만 onResume() 호출
+            if (renderer != null) {
                 glSurfaceView.onResume()
+                Log.d(TAG, "GLSurfaceView.onResume() 호출됨")
             } else {
-                Log.d(TAG, "AR 세션이 null이므로 초기화 시도")
+                Log.d(TAG, "렌더러가 null이므로 GLSurfaceView.onResume() 호출 건너뜀")
                 // 세션이 없는 경우 권한이 있으면 초기화
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                     == PackageManager.PERMISSION_GRANTED) {
                     setupArCore()
                 }
             }
+        } catch (e: CameraNotAvailableException) {
+            Log.e(TAG, "카메라를 사용할 수 없습니다: ${e.message}")
+            statusTextView.text = "카메라를 사용할 수 없습니다"
+            e.printStackTrace()
         } catch (e: Exception) {
             Log.e(TAG, "onResume 중 오류: ${e.message}")
             e.printStackTrace()
@@ -476,15 +555,33 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        Log.d(TAG, "onPause() 호출됨")
 
-        arSession?.pause()
+        try {
+            arSession?.pause()
+
+            // GLSurfaceView가 setRenderer()가 호출된 경우에만 onPause() 호출
+            if (renderer != null) {
+                glSurfaceView.onPause()
+                Log.d(TAG, "GLSurfaceView.onPause() 호출됨")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "onPause 중 오류: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        Log.d(TAG, "onDestroy() 호출됨")
 
-        arSession?.close()
-        arSession = null
+        try {
+            arSession?.close()
+            arSession = null
+        } catch (e: Exception) {
+            Log.e(TAG, "onDestroy 중 오류: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     private fun checkIsSupportedDeviceOrFinish(): Boolean {

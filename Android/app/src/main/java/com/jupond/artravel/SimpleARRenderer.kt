@@ -40,7 +40,7 @@ class SimpleARRenderer(
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         Log.d(TAG, "onSurfaceCreated() 호출됨")
-        GLES20.glClearColor(0.3f, 0.3f, 0.3f, 1.0f)  // 배경색을 진한 회색으로 설정
+        GLES20.glClearColor(0.1f, 0.1f, 0.1f, 1.0f)
 
         try {
             // 카메라 텍스처 생성
@@ -55,10 +55,26 @@ class SimpleARRenderer(
 
             // 카메라 텍스처 설정
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, cameraTextureId)
-            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
-            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
-            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
-            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+            GLES20.glTexParameteri(
+                GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GLES20.GL_TEXTURE_WRAP_S,
+                GLES20.GL_CLAMP_TO_EDGE
+            )
+            GLES20.glTexParameteri(
+                GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GLES20.GL_TEXTURE_WRAP_T,
+                GLES20.GL_CLAMP_TO_EDGE
+            )
+            GLES20.glTexParameteri(
+                GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GLES20.GL_TEXTURE_MIN_FILTER,
+                GLES20.GL_LINEAR
+            )
+            GLES20.glTexParameteri(
+                GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GLES20.GL_TEXTURE_MAG_FILTER,
+                GLES20.GL_LINEAR
+            )
 
             // 카메라 셰이더 초기화
             val vertexShader = """
@@ -69,7 +85,7 @@ class SimpleARRenderer(
                     gl_Position = a_Position;
                     v_TexCoord = a_TexCoord;
                 }
-            """
+            """.trimIndent()
 
             val fragmentShader = """
                 #extension GL_OES_EGL_image_external : require
@@ -79,13 +95,17 @@ class SimpleARRenderer(
                 void main() {
                     gl_FragColor = texture2D(u_Texture, v_TexCoord);
                 }
-            """
+            """.trimIndent()
 
             // 셰이더 프로그램 생성
             val vertexShaderId = compileShader(GLES20.GL_VERTEX_SHADER, vertexShader)
             val fragmentShaderId = compileShader(GLES20.GL_FRAGMENT_SHADER, fragmentShader)
 
             cameraProgram = GLES20.glCreateProgram()
+            if (cameraProgram == 0) {
+                throw RuntimeException("프로그램 생성 실패")
+            }
+
             GLES20.glAttachShader(cameraProgram, vertexShaderId)
             GLES20.glAttachShader(cameraProgram, fragmentShaderId)
             GLES20.glLinkProgram(cameraProgram)
@@ -107,9 +127,9 @@ class SimpleARRenderer(
             // 화면을 덮는 쿼드 정점 데이터 초기화
             val quadVerticesData = floatArrayOf(
                 -1.0f, -1.0f, 0.0f,  // 좌하단
-                -1.0f,  1.0f, 0.0f,  // 좌상단
+                -1.0f, 1.0f, 0.0f,  // 좌상단
                 1.0f, -1.0f, 0.0f,  // 우하단
-                1.0f,  1.0f, 0.0f   // 우상단
+                1.0f, 1.0f, 0.0f   // 우상단
             )
 
             quadVertices = ByteBuffer.allocateDirect(quadVerticesData.size * 4)
@@ -159,7 +179,6 @@ class SimpleARRenderer(
     override fun onDrawFrame(gl: GL10?) {
         // Clear screen
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
-        GLES20.glClearColor(0.2f, 0.2f, 0.2f, 1.0f)  // 회색으로 변경
 
         if (!isGlInitialized) {
             Log.e(TAG, "GL이 초기화되지 않았습니다. 렌더링을 건너뜁니다.")
@@ -173,9 +192,9 @@ class SimpleARRenderer(
             // 카메라 배경 렌더링
             drawCameraBackground(frame)
 
-            // 트래킹 상태 로깅
+            // 트래킹 상태 로깅 (너무 자주 로깅하면 성능에 영향을 줄 수 있어 낮은 로그 레벨 사용)
             val camera = frame.camera
-            Log.d(TAG, "카메라 트래킹 상태: ${camera.trackingState}")
+            Log.v(TAG, "카메라 트래킹 상태: ${camera.trackingState}")
 
             // 현재 사이트가 있으면 AR 모델 렌더링
             currentSite?.let {
@@ -193,8 +212,9 @@ class SimpleARRenderer(
             // 깊이 테스트 비활성화 (배경은 항상 가장 뒤에)
             GLES20.glDisable(GLES20.GL_DEPTH_TEST)
 
-            // 새로운 방식: 세션의 카메라 텍스처를 업데이트
-            session.setCameraTextureName(cameraTextureId)
+            // 세션의 카메라 텍스처를 업데이트
+            // 주의: session.setCameraTextureName()은 onSurfaceCreated에서 한 번만 호출해야 함
+            // 여기서는 이미 설정된 텍스처를 사용
 
             // 셰이더 프로그램 사용
             GLES20.glUseProgram(cameraProgram)
@@ -205,8 +225,22 @@ class SimpleARRenderer(
             GLES20.glUniform1i(cameraTextureUniform, 0)
 
             // 버텍스 및 텍스처 좌표 전달
-            GLES20.glVertexAttribPointer(cameraPositionAttrib, 3, GLES20.GL_FLOAT, false, 0, quadVertices)
-            GLES20.glVertexAttribPointer(cameraTexCoordAttrib, 2, GLES20.GL_FLOAT, false, 0, quadTexCoords)
+            GLES20.glVertexAttribPointer(
+                cameraPositionAttrib,
+                3,
+                GLES20.GL_FLOAT,
+                false,
+                0,
+                quadVertices
+            )
+            GLES20.glVertexAttribPointer(
+                cameraTexCoordAttrib,
+                2,
+                GLES20.GL_FLOAT,
+                false,
+                0,
+                quadTexCoords
+            )
 
             GLES20.glEnableVertexAttribArray(cameraPositionAttrib)
             GLES20.glEnableVertexAttribArray(cameraTexCoordAttrib)
@@ -226,9 +260,24 @@ class SimpleARRenderer(
             e.printStackTrace()
         }
     }
+
     private fun renderARModel(frame: Frame, site: MainActivity.HistoricalSite) {
-        // 모델 렌더링 로직 (이 부분은 나중에 구현)
-        Log.v(TAG, "모델 렌더링: ${site.name}")
+        try {
+            // 모델 파일 경로를 가져옴
+            val modelPath = site.modelPath
+            Log.d(TAG, "모델 렌더링 시도: ${site.name}, 모델 경로: $modelPath")
+
+            // 리소스 ID로부터 모델 파일 로드
+            val resourceId = modelPath.toInt() // R.raw.build3d를 정수로 변환
+            val inputStream = context.resources.openRawResource(resourceId)
+
+            // 모델 로드 및 렌더링 로직 구현
+            // ...
+
+        } catch (e: Exception) {
+            Log.e(TAG, "모델 렌더링 오류: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     fun setCurrentSite(site: MainActivity.HistoricalSite?) {
@@ -239,6 +288,10 @@ class SimpleARRenderer(
     // 셰이더 컴파일 유틸리티 메서드
     private fun compileShader(type: Int, shaderCode: String): Int {
         val shader = GLES20.glCreateShader(type)
+        if (shader == 0) {
+            throw RuntimeException("셰이더 타입 $type 생성 실패")
+        }
+
         GLES20.glShaderSource(shader, shaderCode)
         GLES20.glCompileShader(shader)
 
