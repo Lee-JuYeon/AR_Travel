@@ -51,7 +51,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
     // ARCore
-    implementation("com.google.ar:core:1.40.0")
+    implementation("com.google.ar:core:1.36.0")
 
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

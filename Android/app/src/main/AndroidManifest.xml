@@ -10,9 +10,13 @@
     <!-- 인터넷 권한 (모델 다운로드 등에 필요) -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- AR 필수 사항 -->
+    <!-- AR 필수 사항 - required를 false로 변경해보기 -->
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-feature android:name="android.hardware.camera.ar" android:required="true" />
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+
+    <!-- ARCore 메타데이터 - optional로 변경해보기 -->
+    <meta-data android:name="com.google.ar.core" android:value="optional" />
 
     <application
         android:allowBackup="true"

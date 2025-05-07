@@ -23,6 +23,7 @@ import com.google.ar.core.exceptions.UnavailableApkTooOldException
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
 import com.google.ar.core.exceptions.UnavailableException
+import com.google.ar.core.exceptions.UnavailableSdkTooOldException
 
 class MainActivity : AppCompatActivity() {
 
@@ -53,6 +54,35 @@ class MainActivity : AppCompatActivity() {
     // AR 렌더러
     private var renderer: SimpleARRenderer? = null
 
+    private fun testBasicARCore() {
+        try {
+            // 1. ARCore 설치 확인
+            val availability = ArCoreApk.getInstance().checkAvailability(this)
+            if (availability.isUnsupported) {
+                statusTextView.text = "이 기기는 ARCore를 지원하지 않습니다."
+                return
+            }
+
+            // 2. 세션 생성 테스트
+            val testSession = Session(this)
+
+            // 3. 기본 Config 테스트
+            val config = Config(testSession)
+            config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
+
+            // 4. 세션 구성 테스트
+            testSession.configure(config)
+
+            statusTextView.text = "기본 ARCore 테스트 성공!"
+
+            // 테스트 후 정리
+            testSession.close()
+
+        } catch (e: Exception) {
+            statusTextView.text = "테스트 실패: ${e.message}"
+            Log.e(TAG, "ARCore 테스트 실패", e)
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate() 호출됨")
@@ -75,6 +105,55 @@ class MainActivity : AppCompatActivity() {
 
         // 권한 요청
         requestPermissions()
+
+        checkARCoreInstalled()
+        createARSession()
+        testBasicARCore()
+
+    }
+
+    private fun checkARCoreInstalled(): Boolean {
+        val availability = ArCoreApk.getInstance().checkAvailability(this)
+
+        when (availability) {
+            ArCoreApk.Availability.SUPPORTED_INSTALLED -> {
+                Log.d(TAG, "ARCore 설치됨")
+                return true
+            }
+            ArCoreApk.Availability.SUPPORTED_NOT_INSTALLED,
+            ArCoreApk.Availability.SUPPORTED_APK_TOO_OLD -> {
+                Log.d(TAG, "ARCore가 설치되지 않았거나 오래됨")
+                return false
+            }
+            else -> {
+                Log.d(TAG, "ARCore 지원되지 않음: $availability")
+                return false
+            }
+        }
+    }
+
+    private fun createARSession(): Session? {
+        try {
+            val session = Session(this)
+            Log.d(TAG, "AR 세션 생성 성공")
+            return session
+        } catch (e: UnavailableArcoreNotInstalledException) {
+            Log.e(TAG, "ARCore가 설치되지 않음", e)
+            Toast.makeText(this, "ARCore를 설치해주세요", Toast.LENGTH_LONG).show()
+        } catch (e: UnavailableApkTooOldException) {
+            Log.e(TAG, "ARCore가 오래됨", e)
+            Toast.makeText(this, "ARCore를 업데이트해주세요", Toast.LENGTH_LONG).show()
+        } catch (e: UnavailableSdkTooOldException) {
+            Log.e(TAG, "앱 SDK가 오래됨", e)
+            Toast.makeText(this, "앱 업데이트가 필요합니다", Toast.LENGTH_LONG).show()
+        } catch (e: UnavailableDeviceNotCompatibleException) {
+            Log.e(TAG, "기기가 ARCore를 지원하지 않음", e)
+            Toast.makeText(this, "이 기기는 AR을 지원하지 않습니다", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Log.e(TAG, "AR 세션 생성 중 알 수 없는 오류: ${e.message}", e)
+            Toast.makeText(this, "AR 초기화 오류: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+        return null
     }
 
     override fun onStart() {
@@ -212,22 +291,43 @@ class MainActivity : AppCompatActivity() {
 
     private fun initARSession() {
         try {
-            if (arSession == null) {
-                Log.d(TAG, "새 AR 세션 생성 시도")
+            Log.d(TAG, "세션 초기화 시작")
 
-                // 세션을 생성하기 전에 ARCore 설치 상태 확인
+            if (arSession == null) {
+                // 각 단계마다 상세 로그 추가
+                Log.d(TAG, "1. ARCore 설치 상태 확인")
                 val availability = ArCoreApk.getInstance().checkAvailability(this)
+                Log.d(TAG, "ARCore 사용 가능 여부: $availability")
+
                 if (availability.isTransient || availability.isUnsupported) {
                     Log.e(TAG, "ARCore를 사용할 수 없음: $availability")
                     statusTextView.text = "이 기기에서 ARCore를 사용할 수 없습니다"
                     return
                 }
 
+                // ARCore 설치 요청
+                Log.d(TAG, "2. ARCore 설치 요청")
+                val installStatus = ArCoreApk.getInstance().requestInstall(this, true)
+                Log.d(TAG, "ARCore 설치 상태: $installStatus")
+
+                if (installStatus != ArCoreApk.InstallStatus.INSTALLED) {
+                    Log.d(TAG, "ARCore가 설치되지 않음, 설치 후 다시 시도")
+                    return
+                }
+
                 // 세션 생성
-                arSession = Session(this)
-                Log.d(TAG, "AR 세션 생성 성공")
+                Log.d(TAG, "3. 세션 생성")
+                try {
+                    arSession = Session(this)
+                    Log.d(TAG, "세션 생성 성공: $arSession")
+                } catch (e: Exception) {
+                    Log.e(TAG, "세션 생성 실패: ${e.message}", e)
+                    statusTextView.text = "세션 생성 실패: ${e.message}"
+                    return
+                }
 
                 // 구성 전에 카메라 권한 확인
+                Log.d(TAG, "4. 카메라 권한 확인")
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                     != PackageManager.PERMISSION_GRANTED) {
                     Log.e(TAG, "카메라 권한이 없습니다")
@@ -235,67 +335,45 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 // ARCore 세션 구성
-                val config = Config(arSession)
-                // 먼저 깊이 모드, 평면 감지 모드 등을 설정하기 전에 세션이 null인지 확인
-                if (arSession != null) {
+                Log.d(TAG, "5. 세션 구성 시도")
+                try {
+                    val config = Config(arSession)
+                    Log.d(TAG, "Config 객체 생성 성공: $config")
+
                     config.depthMode = Config.DepthMode.AUTOMATIC
                     config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+                    config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
+                    config.focusMode = Config.FocusMode.AUTO
+                    config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
 
-                    // 디버깅을 위한 추가 설정
-                    try {
-                        // UpdateMode 설정 (최신 카메라 이미지 사용)
-                        config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
+                    Log.d(TAG, "ARCore 세션 구성 설정 완료")
 
-                        // 자동 초점 모드 설정
-                        config.focusMode = Config.FocusMode.AUTO
+                    arSession?.configure(config)
+                    Log.d(TAG, "ARCore 세션 구성 성공")
 
-                        // 조명 추정 모드 설정
-                        config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                    statusTextView.text = "AR 세션이 초기화되었습니다. 주변을 둘러보세요."
 
-                        Log.d(TAG, "AR 세션 추가 설정 완료")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "AR 추가 설정 중 오류: ${e.message}")
-                        // 추가 설정 실패해도 계속 진행
+                    // GLSurfaceView 설정
+                    Log.d(TAG, "6. GLSurfaceView 설정")
+                    setupGLSurfaceView()
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "세션 구성 중 오류 발생: ${e.message}", e)
+                    e.printStackTrace()
+                    // 여기서 Stack trace 전체를 로그로 출력
+                    for (element in e.stackTrace) {
+                        Log.e(TAG, element.toString())
                     }
-
-
-                    try {
-                        arSession?.configure(config)
-                        Log.d(TAG, "AR 세션 구성 성공")
-                        statusTextView.text = "AR 세션이 초기화되었습니다. 주변을 둘러보세요."
-
-                        // GLSurfaceView 설정
-                        setupGLSurfaceView()
-                    } catch (e: Exception) {
-                        Log.e(TAG, "세션 구성 중 오류: ${e.message}")
-                        statusTextView.text = "AR 초기화 구성 실패: ${e.message}"
-                        e.printStackTrace()
-                    }
-                } else {
-                    Log.e(TAG, "AR 세션이 null입니다 (생성 후)")
-                    statusTextView.text = "AR 세션 생성 실패"
+                    statusTextView.text = "AR 초기화 구성 실패: ${e.message}"
                 }
             }
-        } catch (e: UnavailableException) {
-            Log.e(TAG, "AR 세션 초기화 중 UnavailableException 발생: ${e.message}", e)
-            statusTextView.text = "AR 초기화 실패: ${e.message}"
-
-            // 구체적인 오류 처리
-            when (e) {
-                is UnavailableDeviceNotCompatibleException ->
-                    Toast.makeText(this, "이 기기는 AR을 지원하지 않습니다", Toast.LENGTH_LONG).show()
-                is UnavailableArcoreNotInstalledException ->
-                    Toast.makeText(this, "ARCore를 설치해주세요", Toast.LENGTH_LONG).show()
-                is UnavailableApkTooOldException ->
-                    Toast.makeText(this, "ARCore를 업데이트해주세요", Toast.LENGTH_LONG).show()
-                else ->
-                    Toast.makeText(this, "AR 초기화 오류: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-            e.printStackTrace()
         } catch (e: Exception) {
-            Log.e(TAG, "AR 세션 초기화 중 기타 오류 발생: ${e.message}", e)
-            statusTextView.text = "AR 초기화 실패: ${e.message}"
+            Log.e(TAG, "세션 초기화 중 예외 발생: ${e.message}", e)
             e.printStackTrace()
+            for (element in e.stackTrace) {
+                Log.e(TAG, element.toString())
+            }
+            statusTextView.text = "AR 초기화 실패: ${e.message}"
         }
     }
     private fun setupGLSurfaceView() {
@@ -476,7 +554,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadSampleHistoricalSites() {
-        // 샘플 데이터
+        // 샘플 데이터 - modelPath를 문자열 경로로 변경
         historicalSites.add(
             HistoricalSite(
                 id = "site1",
@@ -484,7 +562,7 @@ class MainActivity : AppCompatActivity() {
                 description = "집앞 어린이집 조형물테스트",
                 latitude = 37.578017895229664,
                 longitude = 126.6711298166958,
-                modelPath = "build3d.obj", // assets 폴더 내 파일명으로 변경
+                modelPath = "build3d.obj", // assets 폴더 내 파일명
                 originalYear = 1395
             )
         )
@@ -496,12 +574,12 @@ class MainActivity : AppCompatActivity() {
                 description = "정조가 1796년에 완공한 성곽으로, 전통성곽 건축기술과 서양의 과학기술이 결합된 독특한 건축물입니다.",
                 latitude = 37.287568,
                 longitude = 127.012888,
-                modelPath = "build3d.obj", // assets 폴더 내 파일명으로 변경
+                modelPath = "build3d.obj", // assets 폴더 내 파일명
                 originalYear = 1796
             )
         )
 
-        // 테스트를 위해 현재 위치 근처에 가상의 유적지 추가 (실제 앱에서는 제거)
+        // 테스트를 위해 현재 위치 근처에 가상의 유적지 추가
         currentLocation?.let { location ->
             historicalSites.add(
                 HistoricalSite(
@@ -510,7 +588,7 @@ class MainActivity : AppCompatActivity() {
                     description = "테스트용 가상 건축물입니다. 실제 위치에 맞게 수정해야 합니다.",
                     latitude = location.latitude + 0.0001, // 약 10-20미터 거리
                     longitude = location.longitude + 0.0001,
-                    modelPath = "build3d.obj", // assets 폴더 내 파일명으로 변경
+                    modelPath = "build3d.obj", // assets 폴더 내 파일명
                     originalYear = 1800
                 )
             )

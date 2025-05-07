@@ -4,10 +4,11 @@ import android.content.Context
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
+import android.opengl.Matrix
 import android.util.Log
 import com.google.ar.core.Frame
 import com.google.ar.core.Session
-import java.io.IOException
+import com.google.ar.core.TrackingState
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -38,11 +39,36 @@ class SimpleARRenderer(
     private lateinit var quadVertices: FloatBuffer
     private lateinit var quadTexCoords: FloatBuffer
 
+    // 모델 관련 변수
+    private var modelShaderProgram = 0
+    private var modelPositionAttrib = 0
+    private var modelNormalAttrib = 0
+    private var modelMvpMatrixUniform = 0
+    private var modelLightPosUniform = 0
+    private var modelColorUniform = 0
+
+    // 모델 데이터와 로더
+    private var modelData: ObjModelLoader.ModelData? = null
+    private var modelLoader: ObjModelLoader? = null
+
+    // 행렬 변수
+    private val modelMatrix = FloatArray(16)
+    private val viewMatrix = FloatArray(16)
+    private val projectionMatrix = FloatArray(16)
+    private val mvpMatrix = FloatArray(16)
+    private val tempMatrix = FloatArray(16)
+
+    // 카메라 포즈 행렬 저장용
+    private val cameraPoseMatrix = FloatArray(16)
+
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         Log.d(TAG, "onSurfaceCreated() 호출됨")
         GLES20.glClearColor(0.1f, 0.1f, 0.1f, 1.0f)
 
         try {
+            // OBJ 모델 로더 초기화
+            modelLoader = ObjModelLoader(context)
+
             // 카메라 텍스처 생성
             val textures = IntArray(1)
             GLES20.glGenTextures(1, textures, 0)
@@ -152,6 +178,9 @@ class SimpleARRenderer(
             quadTexCoords.put(quadTexCoordsData)
             quadTexCoords.position(0)
 
+            // 3D 모델 셰이더 초기화
+            initModelShaders()
+
             Log.d(TAG, "OpenGL 초기화 완료")
             isGlInitialized = true
 
@@ -160,6 +189,65 @@ class SimpleARRenderer(
             e.printStackTrace()
             isGlInitialized = false
         }
+    }
+
+    private fun initModelShaders() {
+        // 모델 셰이더 초기화
+        val modelVertexShader = """
+            uniform mat4 u_MvpMatrix;
+            attribute vec4 a_Position;
+            attribute vec3 a_Normal;
+            varying vec3 v_Normal;
+            varying vec3 v_ViewPosition;
+            
+            void main() {
+                v_Normal = a_Normal;
+                gl_Position = u_MvpMatrix * a_Position;
+                v_ViewPosition = (u_MvpMatrix * a_Position).xyz;
+            }
+        """.trimIndent()
+
+        val modelFragmentShader = """
+            precision mediump float;
+            uniform vec3 u_LightPos;
+            uniform vec3 u_Color;
+            varying vec3 v_Normal;
+            varying vec3 v_ViewPosition;
+            
+            void main() {
+                vec3 normal = normalize(v_Normal);
+                vec3 lightDir = normalize(u_LightPos - v_ViewPosition);
+                float diffuse = max(dot(normal, lightDir), 0.2);  // 최소 조명 수준 0.2
+                gl_FragColor = vec4(u_Color * diffuse, 1.0);
+            }
+        """.trimIndent()
+
+        // 셰이더 프로그램 생성
+        val vertexShaderId = compileShader(GLES20.GL_VERTEX_SHADER, modelVertexShader)
+        val fragmentShaderId = compileShader(GLES20.GL_FRAGMENT_SHADER, modelFragmentShader)
+
+        modelShaderProgram = GLES20.glCreateProgram()
+        GLES20.glAttachShader(modelShaderProgram, vertexShaderId)
+        GLES20.glAttachShader(modelShaderProgram, fragmentShaderId)
+        GLES20.glLinkProgram(modelShaderProgram)
+
+        // 프로그램 연결 상태 확인
+        val linkStatus = IntArray(1)
+        GLES20.glGetProgramiv(modelShaderProgram, GLES20.GL_LINK_STATUS, linkStatus, 0)
+        if (linkStatus[0] == 0) {
+            val log = GLES20.glGetProgramInfoLog(modelShaderProgram)
+            GLES20.glDeleteProgram(modelShaderProgram)
+            throw RuntimeException("모델 셰이더 프로그램 링크 실패: $log")
+        }
+
+        // 셰이더 속성 및 유니폼 위치 가져오기
+        modelPositionAttrib = GLES20.glGetAttribLocation(modelShaderProgram, "a_Position")
+        modelNormalAttrib = GLES20.glGetAttribLocation(modelShaderProgram, "a_Normal")
+        modelMvpMatrixUniform = GLES20.glGetUniformLocation(modelShaderProgram, "u_MvpMatrix")
+        modelLightPosUniform = GLES20.glGetUniformLocation(modelShaderProgram, "u_LightPos")
+        modelColorUniform = GLES20.glGetUniformLocation(modelShaderProgram, "u_Color")
+
+        Log.d(TAG, "모델 셰이더 초기화 완료")
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -197,8 +285,10 @@ class SimpleARRenderer(
             Log.v(TAG, "카메라 트래킹 상태: ${camera.trackingState}")
 
             // 현재 사이트가 있으면 AR 모델 렌더링
-            currentSite?.let {
-                renderARModel(frame, it)
+            if (camera.trackingState == TrackingState.TRACKING) {
+                currentSite?.let {
+                    renderARModel(frame, it)
+                }
             }
 
         } catch (e: Exception) {
@@ -263,16 +353,113 @@ class SimpleARRenderer(
 
     private fun renderARModel(frame: Frame, site: MainActivity.HistoricalSite) {
         try {
-            // 모델 파일 경로를 가져옴
-            val modelPath = site.modelPath
-            Log.d(TAG, "모델 렌더링 시도: ${site.name}, 모델 경로: $modelPath")
+            // 모델이 아직 로드되지 않았으면 로드
+            if (modelData == null) {
+                val modelPath = site.modelPath
+                modelData = modelLoader?.loadModelFromAssets(modelPath)
+                if (modelData == null) {
+                    Log.e(TAG, "모델 로드 실패: $modelPath")
+                    return
+                }
+                Log.d(TAG, "모델 로드 성공: $modelPath")
+            }
 
-            // 리소스 ID로부터 모델 파일 로드
-            val resourceId = modelPath.toInt() // R.raw.build3d를 정수로 변환
-            val inputStream = context.resources.openRawResource(resourceId)
+            // 카메라 포즈 가져오기
+            val camera = frame.camera
+            val cameraPose = camera.pose
 
-            // 모델 로드 및 렌더링 로직 구현
-            // ...
+            // 카메라 위치와 방향 가져오기
+            // cameraPose.matrix 대신 직접 행렬 얻기
+            // 카메라 포즈 행렬 가져오기
+            cameraPose.toMatrix(cameraPoseMatrix, 0)
+
+            // 카메라로부터 전방 벡터 계산 (z축 방향)
+            val forward = floatArrayOf(0f, 0f, -1f, 0f)
+            val forwardTransformed = FloatArray(4)
+            Matrix.multiplyMV(forwardTransformed, 0, cameraPoseMatrix, 0, forward, 0)
+
+            // 모델을 카메라 앞 3미터 위치에 배치
+            val distanceFromCamera = 3.0f
+            val modelPos = floatArrayOf(
+                cameraPose.tx() + forwardTransformed[0] * distanceFromCamera,
+                cameraPose.ty() + forwardTransformed[1] * distanceFromCamera - 1.0f, // 약간 아래로 배치
+                cameraPose.tz() + forwardTransformed[2] * distanceFromCamera
+            )
+
+            // 모델 행렬 설정
+            Matrix.setIdentityM(modelMatrix, 0)
+            Matrix.translateM(modelMatrix, 0, modelPos[0], modelPos[1], modelPos[2])
+
+            // 카메라 방향을 향하도록 회전 (y축 기준)
+            val direction = Math.atan2(forwardTransformed[0].toDouble(), forwardTransformed[2].toDouble())
+            Matrix.rotateM(modelMatrix, 0, Math.toDegrees(direction).toFloat(), 0f, 1f, 0f)
+
+            // 추가 회전 (모델이 똑바로 서있도록)
+            Matrix.rotateM(modelMatrix, 0, 90f, 1f, 0f, 0f)
+
+            // 모델 크기 조정 (OBJ 파일에 따라 적절히 조정)
+            val scale = 0.5f
+            Matrix.scaleM(modelMatrix, 0, scale, scale, scale)
+
+            // 투영 행렬 및 뷰 행렬 가져오기
+            camera.getProjectionMatrix(projectionMatrix, 0, 0.1f, 100f)
+            camera.getViewMatrix(viewMatrix, 0)
+
+            // MVP 행렬 계산
+            Matrix.multiplyMM(tempMatrix, 0, viewMatrix, 0, modelMatrix, 0)
+            Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, tempMatrix, 0)
+
+            // 모델 렌더링 시작
+            GLES20.glUseProgram(modelShaderProgram)
+
+            // MVP 행렬 전달
+            GLES20.glUniformMatrix4fv(modelMvpMatrixUniform, 1, false, mvpMatrix, 0)
+
+            // 광원 위치 설정 (카메라 위치를 광원으로 사용)
+            GLES20.glUniform3f(modelLightPosUniform, cameraPose.tx(), cameraPose.ty(), cameraPose.tz())
+
+            // 모델 색상 설정 (회백색으로 시작)
+            GLES20.glUniform3f(modelColorUniform, 0.8f, 0.8f, 0.8f)
+
+            // 버텍스 데이터 바인딩
+            GLES20.glEnableVertexAttribArray(modelPositionAttrib)
+            GLES20.glVertexAttribPointer(
+                modelPositionAttrib, 3, GLES20.GL_FLOAT, false, 0, modelData?.vertexBuffer
+            )
+
+            // 법선 데이터 바인딩 (있는 경우에만)
+            modelData?.normalBuffer?.let {
+                GLES20.glEnableVertexAttribArray(modelNormalAttrib)
+                GLES20.glVertexAttribPointer(
+                    modelNormalAttrib, 3, GLES20.GL_FLOAT, false, 0, it
+                )
+            } ?: run {
+                // 법선 데이터가 없는 경우, 기본값 사용
+                val defaultNormal = floatArrayOf(0f, 1f, 0f)
+                GLES20.glVertexAttrib3fv(modelNormalAttrib, defaultNormal, 0)
+            }
+
+            // 깊이 테스트 활성화
+            GLES20.glEnable(GLES20.GL_DEPTH_TEST)
+
+            // 컬링 활성화 (선택사항)
+            GLES20.glEnable(GLES20.GL_CULL_FACE)
+            GLES20.glCullFace(GLES20.GL_BACK)
+
+            // 인덱스 버퍼로 모델 그리기
+            GLES20.glDrawElements(
+                GLES20.GL_TRIANGLES,
+                modelData?.numIndices ?: 0,
+                GLES20.GL_UNSIGNED_INT,
+                modelData?.indexBuffer
+            )
+
+            // 정리
+            GLES20.glDisableVertexAttribArray(modelPositionAttrib)
+            modelData?.normalBuffer?.let {
+                GLES20.glDisableVertexAttribArray(modelNormalAttrib)
+            }
+            GLES20.glDisable(GLES20.GL_CULL_FACE)
 
         } catch (e: Exception) {
             Log.e(TAG, "모델 렌더링 오류: ${e.message}")
@@ -281,8 +468,12 @@ class SimpleARRenderer(
     }
 
     fun setCurrentSite(site: MainActivity.HistoricalSite?) {
-        currentSite = site
-        Log.d(TAG, "현재 사이트 설정: ${site?.name ?: "없음"}")
+        if (site != currentSite) {
+            // 다른 사이트로 변경되었으면 모델 데이터 초기화
+            modelData = null
+            currentSite = site
+            Log.d(TAG, "현재 사이트 설정: ${site?.name ?: "없음"}")
+        }
     }
 
     // 셰이더 컴파일 유틸리티 메서드
