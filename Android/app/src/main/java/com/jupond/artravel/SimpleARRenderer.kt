@@ -369,8 +369,6 @@ class SimpleARRenderer(
             val cameraPose = camera.pose
 
             // 카메라 위치와 방향 가져오기
-            // cameraPose.matrix 대신 직접 행렬 얻기
-            // 카메라 포즈 행렬 가져오기
             cameraPose.toMatrix(cameraPoseMatrix, 0)
 
             // 카메라로부터 전방 벡터 계산 (z축 방향)
@@ -382,11 +380,11 @@ class SimpleARRenderer(
             val distanceFromCamera = 3.0f
             val modelPos = floatArrayOf(
                 cameraPose.tx() + forwardTransformed[0] * distanceFromCamera,
-                cameraPose.ty() + forwardTransformed[1] * distanceFromCamera - 1.0f, // 약간 아래로 배치
+                cameraPose.ty() + forwardTransformed[1] * distanceFromCamera,
                 cameraPose.tz() + forwardTransformed[2] * distanceFromCamera
             )
 
-            // 모델 행렬 설정
+            // 모델 행렬 설정 - 세로로 보이게 함
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, modelPos[0], modelPos[1], modelPos[2])
 
@@ -394,8 +392,10 @@ class SimpleARRenderer(
             val direction = Math.atan2(forwardTransformed[0].toDouble(), forwardTransformed[2].toDouble())
             Matrix.rotateM(modelMatrix, 0, Math.toDegrees(direction).toFloat(), 0f, 1f, 0f)
 
-            // 추가 회전 (모델이 똑바로 서있도록)
-            Matrix.rotateM(modelMatrix, 0, 90f, 1f, 0f, 0f)
+            // OBJ 모델에 따라 추가 회전이 필요할 수 있음
+            // 대부분의 OBJ 모델은 Y-up 좌표계를 사용하므로, 모델이 세로로 서있게 하려면
+            // 회전이 필요하지 않거나 다음과 같은 회전이 필요할 수 있음
+            // Matrix.rotateM(modelMatrix, 0, 180f, 0f, 1f, 0f) // Y축 기준 180도 회전
 
             // 모델 크기 조정 (OBJ 파일에 따라 적절히 조정)
             val scale = 0.5f

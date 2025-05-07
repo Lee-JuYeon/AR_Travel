@@ -4,19 +4,18 @@
 
     <!-- 카메라 권한 -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- 카메라 하드웨어 기능 명시 -->
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+
     <!-- 위치 권한 -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- 인터넷 권한 (모델 다운로드 등에 필요) -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- AR 필수 사항 - required를 false로 변경해보기 -->
-    <uses-feature android:name="android.hardware.camera" android:required="true" />
-    <uses-feature android:name="android.hardware.camera.ar" android:required="true" />
+    <!-- AR 필수 사항 - 일부 기기에서 작동 문제가 있으면 required를 false로 변경 -->
+    <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
-
-    <!-- ARCore 메타데이터 - optional로 변경해보기 -->
-    <meta-data android:name="com.google.ar.core" android:value="optional" />
 
     <application
         android:allowBackup="true"
@@ -29,13 +28,12 @@
         android:theme="@style/Theme.ARtravel"
         tools:targetApi="31">
 
-        <!-- ARCore 메타데이터 -->
-        <meta-data android:name="com.google.ar.core" android:value="required" />
+        <!-- ARCore 메타데이터 - 일부 기기에서 작동 문제가 있으면 optional로 변경 -->
+        <meta-data android:name="com.google.ar.core" android:value="optional" />
 
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:screenOrientation="portrait">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
